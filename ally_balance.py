@@ -26,7 +26,7 @@ mybal = mydb["bal"]
 
 ## api url to get balabce info - includes client ID - need to replace at some point
 
-apiurl = "https://api.tradeking.com/v1/accounts/38845618/balances.json"
+apiurl = "https://api.tradeking.com/v1/accounts/YOURACCTNUM/balances.json"
 
 oAuthConsumer = oauth.Consumer(
     CONSUMER_KEY,
