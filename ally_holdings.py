@@ -28,7 +28,7 @@ myhold.drop()
 
 ## api url to get holdings info - includes client ID - need to replace at some point
 
-apiurl = "https://api.tradeking.com/v1/accounts/38845618/holdings.json"
+apiurl = "https://api.tradeking.com/v1/accounts/YOURACCTNUM/holdings.json"
 
 oAuthConsumer = oauth.Consumer(
     CONSUMER_KEY,
