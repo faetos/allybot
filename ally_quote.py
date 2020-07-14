@@ -4,13 +4,13 @@ import oauth2 as oauth
 import json, simplejson, datetime, threading, os, time, pymongo
 
 
-curtime = datetime.datetime.now()
+curtime1 = datetime.datetime.now()
 
 #print ("Starting" , curtime)
 
 ## static id for now
 
-id = 1
+id = 1000
 
 ### DB stuffs - truncate table and replace it with new data
 
@@ -27,10 +27,10 @@ myerrors = mydb["errors"]
 
 ### auth
 
-CONSUMER_KEY = 'x'
-CONSUMER_SECRET = 'y'
-OAUTH_TOKEN = 'z'
-OAUTH_SECRET = 't'
+CONSUMER_KEY = 'oXVEBpwjzhOd3Pzte880eyvmsdOCLuYnhU7gVLND6Ds0'
+CONSUMER_SECRET = '958SCvppRbwiP1G7KmWaG1bHtpQDkM1peP6CP5P8xbw6'
+OAUTH_TOKEN = 'i8ZJ0aH2Ne2KgcZ32dUpc50A1xkVjbmlcmlgcKaO0bk2'
+OAUTH_SECRET = 'fBIn6qIevvKVEwik5Nn2rwehP7U0gRlUFORQpsRS7pw3'
 
 apiurl = "https://api.tradeking.com/v1/market/ext/quotes.json?symbols="
 
@@ -49,26 +49,11 @@ getweather = weathercol.find()
 for line in getweather:
     #print (line)
     pair = line['pair']
-    lowest = line['lowest']
-    highest = line['highest']
-#    date = line['date']
-    scorex = line['score']
+    wk52lo = line['wk52lo']
+    wk52hi = line['wk52hi']
     last = line['last']
-    pct = line['percentchange']
-    insweath = (pair, lowest, highest, scorex, last, pct)
-#    insweath = (pair, lowest, highest)
+    insweath = (pair, wk52lo, wk52hi, last)
     curweath.append(insweath)
-
-#apilist = []
-
-for h in curweath:
-    curpair = h[0]
-    curlow = h[1]
-    curhigh = h[2]
-    #curdate = h[3]
-    curscore = h[3]
-    curlast = h[4]
-    curpct = h[5]
 
 ### List of stock symbols
 
@@ -88,6 +73,7 @@ for u in apilist:
     oAuthRequest = oauth.Client(oAuthConsumer, oAuthToken)
     response, content = oAuthRequest.request(apiurl+u)
     datax = simplejson.loads(content)['response']['quotes']['quote']
+    #print (datax)
 
     for x in datax:
         bid = x['bid']
@@ -117,49 +103,60 @@ for u in apilist:
             curpair = h[0]
             curlow = h[1]
             curhigh = h[2]
-            #curdate = h[3]
-            curscore = h[3]
-            curlast = h[4]
-            curpct = h[5]
+            curlast = h[3]
 
             if symbol == curpair:
+                if curlow == "na":
+                    curlow = bid
+                if curhigh == "na":
+                    curhigh = ask
+                if last == "na":
+                    last = bid
 
                 if float(curlow) > float(curhigh):
-                    #print ("ERROR - ", symbol, " curlow > curhigh -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
+                    print ("ERROR - ", symbol, " curlow > curhigh -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
+                    pairins = { "pair": symbol }
                     weatherins = { "error": "LOW2HI", "pair": curpair, "last": last, "lowest": curlow, "highest": curhigh,  "bid": bid, "ask": ask, "date": datetime.datetime.now() }
+                    weatherfix = { "$set": { "last": last, "wk52hi": wk52hi, "wk52lo": wk52lo, "pair": curpair}}
+
+                    weathercol.update_many(pairins, weatherfix)
                     myerrors.insert_one(weatherins)
 
                 if float(curhigh) < float(curlow):
-                    #print ("ERROR - ", symbol, " curhigh < curlow -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
+                    print ("ERROR - ", symbol, " curhigh < curlow -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
+                    pairins = { "pair": symbol }
                     weatherins = { "error": "HI2LOW", "pair": curpair, "last": last, "lowest": curlow, "highest": curhigh,  "bid": bid, "ask": ask, "date": datetime.datetime.now() }
+                    weatherfix = { "$set": { "last": last, "wk52hi": wk52hi, "wk52lo": wk52lo, "pair": curpair}}
+
+                    weathercol.update_many(pairins, weatherfix)
                     myerrors.insert_one(weatherins)
 
                 #if bid < curlow:
-                if float(ask) < float(curlow):
-                    #print ("LOW", symbol, "bid", bid, "curlow", curlow, "curhigh", curhigh, "last", last)
+                if float(last) < float(curlow):
+                    print ("LOW", symbol, "bid", bid, "curlow", curlow, "curhigh", curhigh, "last", last)
                     pairins = { "pair": symbol }
-                    ### disdis - need to add lines to weather with some bogusscores
-                    weatherlow = { "$set": { "last": last, "highest": curhigh, "date": datetime.datetime.now(), "score": curscore, "lowest": ask, "percentchange": pchg, "pair": curpair, "bid": bid, "ask": ask }}
-                    weatherlowins = { "cond": "low", "last": last, "highest": curhigh, "date": datetime.datetime.now(), "score": curscore, "lowest": ask, "percentchange": pchg, "pair": curpair, "bid": bid, "ask": ask }
+                    
+                    weatherlow = { "$set": { "last": last, "wk52hi": wk52hi, "wk52lo": last, "pair": curpair}}
+                    weatherlowins = { "cond": "low", "last": last, "highest": curhigh, "date": datetime.datetime.now(), "lowest": ask, "percentchange": pchg, "pair": curpair, "bid": bid, "ask": ask }
                     weathercol.update_many(pairins, weatherlow)
                     myalert.insert_one(weatherlowins)
 
                 #if ask > curhigh:
-                if float(bid) > float(curhigh):
-                    #print ("HIGH", symbol, "ask", ask, "curlow", curlow, "curhigh", curhigh, "last", last)
+                if float(last) > float(curhigh):
+                    print ("HIGH", symbol, "ask", ask, "curlow", curlow, "curhigh", curhigh, "last", last)
                     pairins = { "pair": symbol }
-                    weatherhi = { "$set": { "pair": curpair, "last": last, "percentchange": pchg, "lowest": curlow, "highest": bid, "score": curscore, "date": datetime.datetime.now(), "bid": bid, "ask": ask }}
-                    weatherhiins = { "cond": "high", "pair": curpair, "last": last, "percentchange": pchg, "low": curlow, "high": bid, "score": curscore, "date": datetime.datetime.now(), "bid": bid, "ask": ask }
+                    weatherhi = { "$set": { "last": last, "wk52hi": last, "wk52lo": wk52lo, "pair": curpair}}
+                    weatherhiins = { "cond": "high", "pair": curpair, "last": last, "percentchange": pchg, "low": curlow, "high": bid, "date": datetime.datetime.now(), "bid": bid, "ask": ask }
                     weathercol.update_many(pairins, weatherhi)
                     myalert.insert_one(weatherhiins)
                 else:
                     pairins = { "pair": symbol }
-                    weatherins = { "$set": { "pair": curpair, "last": last, "percentchange": pchg, "lowest": curlow, "highest": curhigh, "score": curscore, "date": datetime.datetime.now(), "bid": bid, "ask": ask }}
-                    #weatherins = { "$set": { "pair": curpair, "last": last, "percentchange": "0", "lowest": curlow, "highest": curhigh, "score": "0", "date": datetime.datetime.now() }}
+
+                    weatherins = { "$set": { "last": last, "wk52hi": wk52hi, "wk52lo": wk52lo, "pair": curpair}}
                     weathercol.update_many(pairins, weatherins)
 
-curtime = datetime.datetime.now()
-
-#print ("Ended ", curtime)
+curtime2 = datetime.datetime.now()
+print ("Started ", curtime1)
+print ("Ended ", curtime2)
 
 
