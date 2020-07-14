@@ -124,18 +124,18 @@ for u in apilist:
 
             if symbol == curpair:
 
-                if curlow > curhigh:
+                if float(curlow) > float(curhigh):
                     #print ("ERROR - ", symbol, " curlow > curhigh -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
                     weatherins = { "error": "LOW2HI", "pair": curpair, "last": last, "lowest": curlow, "highest": curhigh,  "bid": bid, "ask": ask, "date": datetime.datetime.now() }
                     myerrors.insert_one(weatherins)
 
-                if curhigh < curlow:
+                if float(curhigh) < float(curlow):
                     #print ("ERROR - ", symbol, " curhigh < curlow -", "bid", bid, "curlow", curlow, "ask", ask, "curhigh", curhigh, "last", last)
                     weatherins = { "error": "HI2LOW", "pair": curpair, "last": last, "lowest": curlow, "highest": curhigh,  "bid": bid, "ask": ask, "date": datetime.datetime.now() }
                     myerrors.insert_one(weatherins)
 
                 #if bid < curlow:
-                if ask < curlow:
+                if float(ask) < float(curlow):
                     #print ("LOW", symbol, "bid", bid, "curlow", curlow, "curhigh", curhigh, "last", last)
                     pairins = { "pair": symbol }
                     ### disdis - need to add lines to weather with some bogusscores
@@ -145,7 +145,7 @@ for u in apilist:
                     myalert.insert_one(weatherlowins)
 
                 #if ask > curhigh:
-                if bid > curhigh:
+                if float(bid) > float(curhigh):
                     #print ("HIGH", symbol, "ask", ask, "curlow", curlow, "curhigh", curhigh, "last", last)
                     pairins = { "pair": symbol }
                     weatherhi = { "$set": { "pair": curpair, "last": last, "percentchange": pchg, "lowest": curlow, "highest": bid, "score": curscore, "date": datetime.datetime.now(), "bid": bid, "ask": ask }}
